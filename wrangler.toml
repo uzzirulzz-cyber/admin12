@@ -9,5 +9,6 @@ not_found_handling = "single-page-application"
 
 # Custom domain on playbeat.digital zone
 routes = [
-  { pattern = "manage.playbeat.digital", custom_domain = true }
+  { pattern = "manage.playbeat.digital", custom_domain = true },
+  { pattern = "setup.playbeat.digital", custom_domain = true }
 ]

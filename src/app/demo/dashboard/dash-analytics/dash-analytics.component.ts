@@ -17,6 +17,17 @@ export class DashAnalyticsComponent implements OnInit {
     this.chartDB = ChartDB;
     this.dailyVisitorStatus = '1y';
 
+    this.dailyVisitorAxis = {
+      xaxis: {
+        type: 'datetime',
+        min: new Date('01 Mar 2012').getTime(),
+        tickAmount: 6,
+        labels: {
+          offsetY: 5,
+        }
+      }
+    };
+
     this.deviceProgressBar = [
       {
         type: 'success',
