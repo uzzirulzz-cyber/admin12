@@ -538,6 +538,46 @@ export class BusinessManagementService {
       },
       status: 'inactive',
       metrics: {}
+    },
+    {
+      id: 'meta-datasets',
+      name: 'Meta Datasets',
+      description: 'Access and manage Meta Business dataset endpoints for PlayBeat properties. Includes event data, user insights, and conversion tracking across all Meta platforms.',
+      category: 'analytics',
+      icon: 'fab fa-facebook-f',
+      enabled: true,
+      configured: true,
+      provider: 'facebook',
+      config: {
+        datasetIds: [
+          '1405964868183759',
+          '1442172491093699'
+        ],
+        apiVersion: 'v18.0',
+        timezone: 'UTC',
+        includeEvents: ['PageView', 'Purchase', 'Lead', 'CompleteRegistration', 'AddToCart', 'InitiateCheckout'],
+        includeMetrics: ['impressions', 'clicks', 'spend', 'roas']
+      },
+      features: [
+        'Dataset endpoint management',
+        'Event schema configuration',
+        'Cross-platform conversion tracking',
+        'Real-time data streaming',
+        'Custom audience sync',
+        'Historical data retrieval'
+      ],
+      pricing: {
+        model: 'free',
+        price: 0,
+        currency: 'USD'
+      },
+      status: 'active',
+      metrics: {
+        totalDatasets: 2,
+        totalEvents: 125430,
+        uniqueUsers: 28500,
+        dataFreshness: 'real-time'
+      }
     }
   ];
 
