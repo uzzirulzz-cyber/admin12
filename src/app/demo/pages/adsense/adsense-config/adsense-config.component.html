@@ -1,0 +1,255 @@
+<div class="row">
+  <!-- Publisher ID Configuration -->
+  <div class="col-xl-12">
+    <app-card cardTitle="Publisher ID Configuration" [options]="false">
+      <form [formGroup]="publisherIdForm" (ngSubmit)="savePublisherId()">
+        <div class="row">
+          <div class="col-md-6">
+            <div class="form-group">
+              <label>AdSense Publisher ID</label>
+              <input type="text" class="form-control" formControlName="publisherId" placeholder="pub-xxxxxxxxxxxxxxxx" readonly>
+              <small class="form-text text-muted">Your AdSense publisher ID. Format: pub- followed by 16 digits.</small>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-group">
+              <label>&nbsp;</label>
+              <div class="d-flex align-items-center">
+                <button type="submit" class="btn btn-primary m-r-10" [disabled]="!publisherIdForm.valid">
+                  <i class="feather icon-save"></i> Save Publisher ID
+                </button>
+                <span class="badge badge-info">Configured: {{ publisherId }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </app-card>
+  </div>
+
+  <!-- Domain Management -->
+  <div class="col-xl-12">
+    <app-card cardTitle="Domain Management" [options]="true">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0">Configured Domains ({{ domains.length }}/5)</h6>
+        <button class="btn btn-primary btn-sm" (click)="addDomain()" [disabled]="domains.length >= 5">
+          <i class="feather icon-plus"></i> Add Domain
+        </button>
+      </div>
+      
+      <!-- Add/Edit Domain Form -->
+      <div class="card mb-3" *ngIf="showAddDomain || showEditDomain">
+        <div class="card-header bg-light">
+          <h5 class="mb-0">{{ editingDomain ? 'Edit Domain' : 'Add New Domain' }}</h5>
+        </div>
+        <div class="card-body">
+          <form [formGroup]="domainForm" (ngSubmit)="saveDomain()">
+            <div class="row">
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label>Domain</label>
+                  <input type="text" class="form-control" formControlName="domain" placeholder="example.com" [readonly]="showEditDomain">
+                  <small class="form-text text-muted" *ngIf="!showEditDomain">Enter domain name (e.g., playbeat.digital)</small>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label>Client ID (ca-pub-)</label>
+                  <input type="text" class="form-control" formControlName="clientId" placeholder="ca-pub-xxxxxxxxxxxxxxxx">
+                  <small class="form-text text-muted">AdSense Client ID from your AdSense account</small>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label>Ad Slot ID</label>
+                  <input type="text" class="form-control" formControlName="slotId" placeholder="1234567890">
+                  <small class="form-text text-muted">10-digit Ad Slot ID</small>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label>Status</label>
+                  <select class="form-control" formControlName="status">
+                    <option value="active">Active</option>
+                    <option value="pending">Pending</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-12">
+                <div class="form-group mb-0">
+                  <button type="submit" class="btn btn-primary m-r-10" [disabled]="!domainForm.valid">
+                    <i class="feather icon-save"></i> {{ editingDomain ? 'Update' : 'Add' }} Domain
+                  </button>
+                  <button type="button" class="btn btn-secondary" (click)="cancelEdit()">
+                    <i class="feather icon-x"></i> Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Domains Table -->
+      <div class="table-responsive">
+        <table class="table table-hover m-b-0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Domain</th>
+              <th>Client ID</th>
+              <th>Slot ID</th>
+              <th>Status</th>
+              <th>Revenue (30d)</th>
+              <th>Impressions</th>
+              <th>CTR</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let domain of domains; let i = index">
+              <td>{{ i + 1 }}</td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="avatar avatar-sm bg-light-{{ getDomainStatusClass(domain.status).replace('badge-', '') }} m-r-10">
+                    <i class="feather icon-globe f-14"></i>
+                  </div>
+                  <div>
+                    <span class="d-block font-weight-bold">{{ domain.domain }}</span>
+                  </div>
+                </div>
+              </td>
+              <td class="font-monospace">{{ domain.clientId }}</td>
+              <td class="font-monospace">{{ domain.slotId }}</td>
+              <td>
+                <span class="badge {{ getDomainStatusClass(domain.status) }} badge-pill">
+                  {{ domain.status | titlecase }}
+                </span>
+              </td>
+              <td class="font-weight-bold text-success">{{ formatCurrency(domain.revenue) }}</td>
+              <td>{{ formatNumber(domain.impressions) }}</td>
+              <td>{{ domain.ctr.toFixed(2) }}%</td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-primary" (click)="testDomainConnection(domain.domain)" title="Test Connection">
+                    <i class="feather icon-wifi"></i>
+                  </button>
+                  <button class="btn btn-outline-secondary" (click)="editDomain(domain)" title="Edit">
+                    <i class="feather icon-edit"></i>
+                  </button>
+                  <button class="btn btn-outline-danger" (click)="removeDomain(domain.domain)" title="Remove">
+                    <i class="feather icon-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="domains.length === 0">
+              <td colspan="9" class="text-center text-muted py-4">
+                No domains configured. Click "Add Domain" to get started.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </app-card>
+  </div>
+
+  <!-- Global Ad Settings -->
+  <div class="col-xl-12">
+    <app-card cardTitle="Global Ad Settings" [options]="false">
+      <form [formGroup]="globalSettingsForm" (ngSubmit)="saveGlobalSettings()">
+        <div class="row">
+          <div class="col-md-6 col-xl-4">
+            <div class="form-group">
+              <label class="custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input" formControlName="autoAds">
+                <span class="custom-control-label">Auto Ads</span>
+                <small class="form-text text-muted d-block">Automatically place ads where they'll perform best</small>
+              </label>
+            </div>
+          </div>
+          <div class="col-md-6 col-xl-4">
+            <div class="form-group">
+              <label class="custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input" formControlName="pageLevelAds">
+                <span class="custom-control-label">Page Level Ads</span>
+                <small class="form-text text-muted d-block">Show ads on mobile pages automatically</small>
+              </label>
+            </div>
+          </div>
+          <div class="col-md-6 col-xl-4">
+            <div class="form-group">
+              <label class="custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input" formControlName="matchedContent">
+                <span class="custom-control-label">Matched Content</span>
+                <small class="form-text text-muted d-block">Promote your content with native recommendations</small>
+              </label>
+            </div>
+          </div>
+          <div class="col-md-6 col-xl-4">
+            <div class="form-group">
+              <label class="custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input" formControlName="anchorAds">
+                <span class="custom-control-label">Anchor Ads</span>
+                <small class="form-text text-muted d-block">Mobile ads that stick to screen edges</small>
+              </label>
+            </div>
+          </div>
+          <div class="col-md-6 col-xl-4">
+            <div class="form-group">
+              <label class="custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input" formControlName="vignetteAds">
+                <span class="custom-control-label">Vignette Ads</span>
+                <small class="form-text text-muted d-block">Full-screen ads between page loads</small>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="form-group mb-0">
+          <button type="submit" class="btn btn-primary">
+            <i class="feather icon-save"></i> Save Global Settings
+          </button>
+        </div>
+      </form>
+    </app-card>
+  </div>
+
+  <!-- Ad Code Reference -->
+  <div class="col-xl-12">
+    <app-card cardTitle="Ad Code Reference" [options]="false">
+      <div class="row">
+        <div class="col-md-6">
+          <h6>Individual Domain Ad Units</h6>
+          <div class="form-group">
+            <label>Select Domain</label>
+            <select class="form-control" [(ngModel)]="selectedDomainForCode" (change)="onDomainSelectForCode()">
+              <option value="">Choose a domain...</option>
+              <option *ngFor="let domain of domains" [value]="domain.domain">{{ domain.domain }} ({{ domain.status }})</option>
+            </select>
+          </div>
+          <div class="form-group" *ngIf="selectedDomainForCode">
+            <label>Ad Unit Code for {{ selectedDomainForCode }}</label>
+            <textarea class="form-control font-monospace" rows="10" readonly>{{ generateAdCode(selectedDomainForCode) }}</textarea>
+            <button class="btn btn-sm btn-outline-primary mt-2" (click)="copyToClipboard(generateAdCode(selectedDomainForCode))">
+              <i class="feather icon-copy"></i> Copy to Clipboard
+            </button>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <h6>Global Auto Ads Code</h6>
+          <div class="form-group">
+            <label>Auto Ads Code (Place in <head>)</label>
+            <textarea class="form-control font-monospace" rows="10" readonly>{{ adsenseService.getAutoAdsCode() }}</textarea>
+            <button class="btn btn-sm btn-outline-primary mt-2" (click)="copyToClipboard(adsenseService.getAutoAdsCode())">
+              <i class="feather icon-copy"></i> Copy to Clipboard
+            </button>
+            <small class="form-text text-muted">Place this code in the <head> of every page where you want Auto Ads to appear.</small>
+          </div>
+        </div>
+      </div>
+    </app-card>
+  </div>
+</div>

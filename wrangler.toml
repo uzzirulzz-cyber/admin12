@@ -1,0 +1,13 @@
+name = "playbeat-admin-test"
+account_id = "20c83732a1af52f80655768cd4dfc251"
+compatibility_date = "2026-11-24"
+
+# Static assets only (no worker script needed) - serves the Angular SPA
+[assets]
+directory = "./dist/next-v8.1.2-lite"
+not_found_handling = "single-page-application"
+
+# Custom domain on jungleofdestiny.shop zone (testing)
+routes = [
+  { pattern = "admin.jungleofdestiny.shop", custom_domain = true }
+]

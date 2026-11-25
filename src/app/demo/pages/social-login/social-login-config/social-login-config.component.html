@@ -1,0 +1,345 @@
+<div class="row">
+  <!-- Provider Cards Overview -->
+  <div class="col-xl-12">
+    <app-card cardTitle="Social Login Providers" [options]="true">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0">Configure OAuth providers for social authentication</h6>
+        <button class="btn btn-primary btn-sm" (click)="syncBusinessData()">
+          <i class="feather icon-refresh-cw"></i> Sync All Business Data
+        </button>
+      </div>
+      <div class="row">
+        <div class="col-md-4 col-xl-2" *ngFor="let provider of providers">
+          <div class="card mb-3 h-100" [style.border-left]="'4px solid ' + provider.buttonColor">
+            <div class="card-body text-center p-3">
+              <i class="{{ provider.icon }} f-24" [style.color]="provider.buttonColor"></i>
+              <h6 class="mt-2 mb-1">{{ provider.name }}</h6>
+              <span class="badge" [ngClass]="getProviderStatusClass(provider.enabled)">
+                {{ getProviderStatusText(provider.enabled) }}
+              </span>
+              <div class="mt-2">
+                <small class="text-muted d-block">{{ getBusinessConfigStatus(provider) }}</small>
+                <span class="badge" [ngClass]="getBusinessConfigStatusClass(provider)">
+                  {{ getBusinessConfigStatus(provider) }}
+                </span>
+              </div>
+              <div class="mt-3">
+                <button class="btn btn-sm btn-outline-primary m-r-5 mb-1" (click)="editProvider(provider)">
+                  <i class="feather icon-edit"></i> Configure
+                </button>
+                <button class="btn btn-sm btn-outline-info m-r-5 mb-1" (click)="testProviderConnection(provider.id)">
+                  <i class="feather icon-external-link"></i> Test OAuth
+                </button>
+                <button class="btn btn-sm btn-outline-warning mb-1" *ngIf="provider.businessConfig?.enabled" (click)="refreshProviderToken(provider.id)">
+                  <i class="feather icon-refresh-cw"></i> Refresh Token
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </app-card>
+  </div>
+
+  <!-- Provider Configuration Form -->
+  <div class="col-xl-12" *ngIf="showEditProvider && editingProvider">
+    <app-card cardTitle="Configure {{ editingProvider.name }}" [options]="false" id="provider-form">
+      <div class="row">
+        <div class="col-md-6">
+          <div class="card mb-3">
+            <div class="card-header bg-light">
+              <h6 class="mb-0">OAuth Configuration</h6>
+            </div>
+            <div class="card-body">
+              <form>
+                <div class="form-group">
+                  <label>Status</label>
+                  <div class="custom-control custom-switch">
+                    <input type="checkbox" class="custom-control-input" id="providerEnabled" [(ngModel)]="editingProvider.enabled" name="providerEnabled">
+                    <label class="custom-control-label" for="providerEnabled">Enabled</label>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Client ID</label>
+                  <input type="text" class="form-control" [(ngModel)]="editingProvider.clientId" name="clientId" placeholder="Enter Client ID">
+                </div>
+                <div class="form-group">
+                  <label>Client Secret</label>
+                  <input type="password" class="form-control" [(ngModel)]="editingProvider.clientSecret" name="clientSecret" placeholder="Enter Client Secret">
+                  <button class="btn btn-sm btn-outline-secondary mt-2" type="button" (click)="copyToClipboard(editingProvider.clientSecret)">
+                    <i class="feather icon-copy"></i> Copy
+                  </button>
+                </div>
+                <div class="form-group">
+                  <label>Redirect URI</label>
+                  <input type="text" class="form-control" [(ngModel)]="editingProvider.redirectUri" name="redirectUri" placeholder="https://yourdomain.com/auth/callback/provider">
+                  <small class="form-text text-muted">Must match the authorized redirect URI in your OAuth app settings</small>
+                </div>
+                <div class="form-group">
+                  <label>Scopes (comma-separated)</label>
+                  <textarea class="form-control" rows="3" [(ngModel)]="editingProvider.scopes" name="scopes" placeholder="email, profile, openid"></textarea>
+                  <small class="form-text text-muted">Enter scopes as comma-separated values</small>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card mb-3">
+            <div class="card-header bg-light">
+              <h6 class="mb-0">Button Customization</h6>
+            </div>
+            <div class="card-body">
+              <form>
+                <div class="form-group">
+                  <label>Button Text</label>
+                  <input type="text" class="form-control" [(ngModel)]="editingProvider.buttonText" name="buttonText" placeholder="Continue with {{ editingProvider.name }}">
+                </div>
+                <div class="form-group">
+                  <label>Button Color</label>
+                  <div class="input-group">
+                    <input type="color" class="form-control form-control-color" [(ngModel)]="editingProvider.buttonColor" name="buttonColor">
+                    <input type="text" class="form-control" [(ngModel)]="editingProvider.buttonColor" name="buttonColorText" placeholder="#RRGGBB">
+                  </div>
+                  <small class="form-text text-muted">Used for button background and branding</small>
+                </div>
+                <div class="form-group">
+                  <label>Preview</label>
+                  <button class="btn btn-block" [style.background-color]="editingProvider.buttonColor" [style.border-color]="editingProvider.buttonColor" style="color: white;">
+                    <i class="{{ editingProvider.icon }} m-r-5"></i>
+                    {{ editingProvider.buttonText }}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Business Configuration -->
+          <div class="card mb-3" *ngIf="editingProvider.businessConfig">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+              <h6 class="mb-0">Business Management Integration</h6>
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="businessEnabled" [(ngModel)]="editingProvider.businessConfig.enabled" name="businessEnabled">
+                <label class="custom-control-label" for="businessEnabled">Enable Business Integration</label>
+              </div>
+            </div>
+            <div class="card-body" *ngIf="editingProvider.businessConfig.enabled">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>Business Account ID</label>
+                    <input type="text" class="form-control" [(ngModel)]="editingProvider.businessConfig.businessAccountId" name="businessAccountId" readonly>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>Token Expiry</label>
+                    <input type="text" class="form-control" [value]="editingProvider.businessConfig.tokenExpiry | date:'medium'" readonly>
+                  </div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Access Token</label>
+                <textarea class="form-control font-monospace" rows="2" readonly>{{ editingProvider.businessConfig.accessToken }}</textarea>
+              </div>
+              <div class="form-group">
+                <label>Refresh Token</label>
+                <textarea class="form-control font-monospace" rows="2" readonly>{{ editingProvider.businessConfig.refreshToken }}</textarea>
+              </div>
+              <div class="form-group">
+                <label>Permissions</label>
+                <div class="d-flex flex-wrap">
+                  <span class="badge badge-primary m-r-5 m-b-5" *ngFor="let perm of editingProvider.businessConfig.permissions">{{ perm }}</span>
+                </div>
+              </div>
+
+              <!-- Pages -->
+              <div class="mt-3" *ngIf="editingProvider.businessConfig.pages && editingProvider.businessConfig.pages.length > 0">
+                <h6>Connected Pages</h6>
+                <div class="table-responsive">
+                  <table class="table table-sm">
+                    <thead>
+                      <tr><th>Name</th><th>Category</th><th>Tasks</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let page of editingProvider.businessConfig.pages">
+                        <td>{{ page.name }}</td>
+                        <td>{{ page.category }}</td>
+                        <td><span class="badge badge-info" *ngFor="let task of page.tasks">{{ task }}</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Ad Accounts -->
+              <div class="mt-3" *ngIf="editingProvider.businessConfig.adAccounts && editingProvider.businessConfig.adAccounts.length > 0">
+                <h6>Ad Accounts</h6>
+                <div class="table-responsive">
+                  <table class="table table-sm">
+                    <thead>
+                      <tr><th>Name</th><th>ID</th><th>Currency</th><th>Permissions</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let account of editingProvider.businessConfig.adAccounts">
+                        <td>{{ account.name }}</td>
+                        <td class="font-monospace">{{ account.id }}</td>
+                        <td>{{ account.currency }}</td>
+                        <td><span class="badge badge-success" *ngFor="let perm of account.permissions">{{ perm }}</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Pixels -->
+              <div class="mt-3" *ngIf="editingProvider.businessConfig.pixels && editingProvider.businessConfig.pixels.length > 0">
+                <h6>Tracking Pixels</h6>
+                <div class="table-responsive">
+                  <table class="table table-sm">
+                    <thead>
+                      <tr><th>Name</th><th>ID</th><th>Status</th><th>Events</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let pixel of editingProvider.businessConfig.pixels">
+                        <td>{{ pixel.name }}</td>
+                        <td class="font-monospace">{{ pixel.id }}</td>
+                        <td><span class="badge" [ngClass]="pixel.status === 'active' ? 'badge-success' : (pixel.status === 'pending' ? 'badge-warning' : 'badge-danger')">{{ pixel.status | titlecase }}</span></td>
+                        <td><span class="badge badge-secondary m-r-5" *ngFor="let event of pixel.events">{{ event }}</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="form-group mb-0 text-right">
+        <button class="btn btn-secondary m-r-10" (click)="cancelEdit()">
+          <i class="feather icon-x"></i> Cancel
+        </button>
+        <button class="btn btn-primary" (click)="saveProvider()">
+          <i class="feather icon-save"></i> Save Configuration
+        </button>
+      </div>
+    </app-card>
+  </div>
+
+  <!-- Global Settings -->
+  <div class="col-xl-6">
+    <app-card cardTitle="Global Authentication Settings" [options]="false">
+      <form [formGroup]="globalSettingsForm" (ngSubmit)="saveGlobalSettings()">
+        <div class="card-body">
+          <div class="form-group">
+            <div class="custom-control custom-switch">
+              <input type="checkbox" class="custom-control-input" formControlName="allowSignup" id="allowSignup">
+              <label class="custom-control-label" for="allowSignup">Allow new user signup via social login</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="custom-control custom-switch">
+              <input type="checkbox" class="custom-control-input" formControlName="allowLogin" id="allowLogin">
+              <label class="custom-control-label" for="allowLogin">Allow existing users to login via social login</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="custom-control custom-switch">
+              <input type="checkbox" class="custom-control-input" formControlName="autoLinkAccounts" id="autoLinkAccounts">
+              <label class="custom-control-label" for="autoLinkAccounts">Automatically link social accounts to existing users by email</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="custom-control custom-switch">
+              <input type="checkbox" class="custom-control-input" formControlName="requireEmailVerification" id="requireEmailVerification">
+              <label class="custom-control-label" for="requireEmailVerification">Require email verification for new social signups</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Default Redirect URL After Login</label>
+            <input type="text" class="form-control" formControlName="defaultRedirectUrl" placeholder="/dashboard/analytics">
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="feather icon-save"></i> Save Global Settings
+          </button>
+        </div>
+      </form>
+    </app-card>
+  </div>
+
+  <!-- Business Management Settings -->
+  <div class="col-xl-6">
+    <app-card cardTitle="Business Management Settings" [options]="false">
+      <form [formGroup]="businessManagementForm" (ngSubmit)="saveBusinessManagementSettings()">
+        <div class="card-body">
+          <div class="form-group">
+            <div class="custom-control custom-switch">
+              <input type="checkbox" class="custom-control-input" formControlName="enabled" id="bmEnabled">
+              <label class="custom-control-label" for="bmEnabled">Enable Business Management Integration</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Default Business ID</label>
+            <input type="text" class="form-control" formControlName="defaultBusinessId" placeholder="1234567890123456">
+          </div>
+          <div class="form-group">
+            <label>Sync Interval (minutes)</label>
+            <input type="number" class="form-control" formControlName="syncInterval" min="5" max="1440">
+            <small class="form-text text-muted">How often to sync business data from providers (default: 60 minutes)</small>
+          </div>
+          <div class="form-group">
+            <label>Webhook URL</label>
+            <input type="text" class="form-control" formControlName="webhookUrl" placeholder="https://yourdomain.com/api/webhooks/social">
+            <small class="form-text text-muted">Endpoint to receive real-time updates from social platforms</small>
+          </div>
+          <div class="form-group mb-0">
+            <button type="submit" class="btn btn-primary">
+              <i class="feather icon-save"></i> Save Business Settings
+            </button>
+            <button type="button" class="btn btn-outline-info m-l-10" (click)="syncBusinessData()">
+              <i class="feather icon-refresh-cw"></i> Sync Now
+            </button>
+          </div>
+        </div>
+      </form>
+    </app-card>
+  </div>
+
+  <!-- OAuth URLs Reference -->
+  <div class="col-xl-12">
+    <app-card cardTitle="OAuth Authorization URLs" [options]="false">
+      <div class="table-responsive">
+        <table class="table table-hover m-b-0">
+          <thead>
+            <tr>
+              <th>Provider</th>
+              <th>Authorization URL</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let provider of providers">
+              <td>
+                <i class="{{ provider.icon }} m-r-5" [style.color]="provider.buttonColor"></i>
+                <strong>{{ provider.name }}</strong>
+              </td>
+              <td class="font-monospace small">
+                <div class="d-flex">
+                  <span class="flex-grow-1" title="{{ socialLoginService.getOAuthUrl(provider.id) }}">{{ socialLoginService.getOAuthUrl(provider.id) }}</span>
+                  <button class="btn btn-sm btn-outline-secondary m-l-2" (click)="copyToClipboard(socialLoginService.getOAuthUrl(provider.id))" title="Copy URL">
+                    <i class="feather icon-copy"></i>
+                  </button>
+                </div>
+              </td>
+              <td>
+                <button class="btn btn-sm btn-outline-primary" (click)="testProviderConnection(provider.id)">
+                  <i class="feather icon-external-link"></i> Test
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </app-card>
+  </div>
+</div>

@@ -1,0 +1,375 @@
+<div class="row">
+  <!-- Aggregated Metrics -->
+  <div class="col-xl-12">
+    <app-card cardTitle="Business Management Overview" [options]="true">
+      <div class="row no-gutters">
+        <div class="col-md-3">
+          <div class="card-body text-center border-right">
+            <span class="text-muted d-block f-12">Total Revenue (Ads)</span>
+            <h3 class="mt-1 mb-0 font-weight-bold text-success">{{ formatCurrency(aggregatedMetrics.totalRevenue || 0) }}</h3>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card-body text-center border-right">
+            <span class="text-muted d-block f-12">Total Ad Spend</span>
+            <h3 class="mt-1 mb-0 font-weight-bold text-warning">{{ formatCurrency(aggregatedMetrics.totalAdSpend || 0) }}</h3>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card-body text-center border-right">
+            <span class="text-muted d-block f-12">Total Impressions</span>
+            <h3 class="mt-1 mb-0 font-weight-bold text-primary">{{ formatNumber(aggregatedMetrics.totalImpressions || 0) }}</h3>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card-body text-center">
+            <span class="text-muted d-block f-12">Total Conversions</span>
+            <h3 class="mt-1 mb-0 font-weight-bold text-info">{{ formatNumber(aggregatedMetrics.totalConversions || 0) }}</h3>
+          </div>
+        </div>
+      </div>
+      <div class="row no-gutters mt-2">
+        <div class="col-md-3">
+          <div class="card-body text-center border-right">
+            <span class="text-muted d-block f-12">Total Users (Analytics)</span>
+            <h3 class="mt-1 mb-0 font-weight-bold">{{ formatNumber(aggregatedMetrics.totalUsers || 0) }}</h3>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card-body text-center border-right">
+            <span class="text-muted d-block f-12">Total Sessions</span>
+            <h3 class="mt-1 mb-0 font-weight-bold">{{ formatNumber(aggregatedMetrics.totalSessions || 0) }}</h3>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card-body text-center border-right">
+            <span class="text-muted d-block f-12">Payment Volume</span>
+            <h3 class="mt-1 mb-0 font-weight-bold text-success">{{ formatCurrency(aggregatedMetrics.totalVolume || 0) }}</h3>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card-body text-center">
+            <span class="text-muted d-block f-12">Active Solutions</span>
+            <h3 class="mt-1 mb-0 font-weight-bold">{{ solutions.filter(s => s.status === 'active').length }} / {{ solutions.length }}</h3>
+          </div>
+        </div>
+      </div>
+      <div class="card-body pt-0">
+        <button class="btn btn-primary btn-sm m-r-10" (click)="syncAllSolutions()">
+          <i class="feather icon-refresh-cw"></i> Sync All Solutions
+        </button>
+        <button class="btn btn-outline-primary btn-sm" (click)="activeTab = 'integrations'">
+          <i class="feather icon-link"></i> View Integrations
+        </button>
+      </div>
+    </app-card>
+  </div>
+
+  <!-- Solutions Grid -->
+  <div class="col-xl-12">
+    <app-card cardTitle="Business Solutions" [options]="true">
+      <div class="mb-3">
+        <div class="btn-group" role="group">
+          <button type="button" class="btn btn-sm" [ngClass]="filterCategory === 'all' ? 'btn-primary' : 'btn-outline-secondary'" (click)="filterCategory = 'all'">All</button>
+          <button type="button" class="btn btn-sm" *ngFor="let cat of getCategories()" [ngClass]="filterCategory === cat ? 'btn-primary' : 'btn-outline-secondary'" (click)="filterCategory = cat">
+            <i class="{{ getCategoryIcon(cat) }} m-r-5"></i> {{ getCategoryLabel(cat) }}
+          </button>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6 col-xl-4" *ngFor="let solution of getFilteredSolutions()">
+          <div class="card mb-3 h-100 solution-card" [style.border-left]="'4px solid ' + (solution.status === 'active' ? '#28a745' : (solution.status === 'error' ? '#dc3545' : '#6c757d'))">
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                  <i class="{{ solution.icon }} f-20" [style.color]="solution.status === 'active' ? '#28a745' : '#6c757d'"></i>
+                  <span class="badge" [ngClass]="getSolutionStatusClass(solution.status)" style="margin-left: 8px;">
+                    {{ solution.status | titlecase }}
+                  </span>
+                </div>
+                <span class="badge badge-info">{{ getPricingLabel(solution) }}</span>
+              </div>
+              <h6 class="mb-1">{{ solution.name }}</h6>
+              <p class="text-muted small flex-grow-1">{{ solution.description }}</p>
+              <div class="mb-2">
+                <span class="badge badge-light m-r-5" *ngFor="let feature of solution.features.slice(0, 3)">{{ feature }}</span>
+                <span class="badge badge-light" *ngIf="solution.features.length > 3">+{{ solution.features.length - 3 }} more</span>
+              </div>
+              <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
+                <small class="text-muted" *ngIf="solution.lastSync">
+                  <i class="feather icon-refresh-cw m-r-5"></i> Last sync: {{ solution.lastSync | date:'short' }}
+                </small>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-primary" (click)="viewSolutionDetail(solution)">
+                    <i class="feather icon-eye"></i>
+                  </button>
+                  <button class="btn btn-outline-secondary" (click)="toggleSolution(solution)" [disabled]="solution.status === 'pending'">
+                    <i class="feather" [ngClass]="solution.enabled ? 'icon-power' : 'icon-play'"></i>
+                  </button>
+                  <button class="btn btn-outline-info" (click)="syncSolution(solution)" [disabled]="solution.status !== 'active'">
+                    <i class="feather icon-refresh-cw"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </app-card>
+  </div>
+
+  <!-- Solution Detail Panel -->
+  <div class="col-xl-12" *ngIf="showSolutionDetail && selectedSolution" id="solution-detail">
+    <app-card cardTitle="{{ selectedSolution.name }} - Configuration" [options]="true">
+      <button class="btn btn-sm btn-outline-secondary float-right" (click)="closeSolutionDetail()">
+        <i class="feather icon-x"></i> Close
+      </button>
+      <div class="clearfix mb-3"></div>
+      
+      <div class="row">
+        <div class="col-md-6">
+          <div class="card mb-3">
+            <div class="card-header bg-light">
+              <h6 class="mb-0">Solution Details</h6>
+            </div>
+            <div class="card-body">
+              <p>{{ selectedSolution.description }}</p>
+              <div class="row">
+                <div class="col-6">
+                  <strong>Category:</strong> {{ getCategoryLabel(selectedSolution.category) }}
+                </div>
+                <div class="col-6">
+                  <strong>Provider:</strong> {{ selectedSolution.provider | titlecase }}
+                </div>
+                <div class="col-6">
+                  <strong>Status:</strong> <span class="badge" [ngClass]="getSolutionStatusClass(selectedSolution.status)">{{ selectedSolution.status | titlecase }}</span>
+                </div>
+                <div class="col-6">
+                  <strong>Pricing:</strong> {{ getPricingLabel(selectedSolution) }}
+                </div>
+                <div class="col-6">
+                  <strong>Configured:</strong> <span class="badge" [ngClass]="selectedSolution.configured ? 'badge-success' : 'badge-warning'">{{ selectedSolution.configured ? 'Yes' : 'No' }}</span>
+                </div>
+                <div class="col-6">
+                  <strong>Last Sync:</strong> {{ selectedSolution.lastSync ? (selectedSolution.lastSync | date:'medium') : 'Never' }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-3">
+            <div class="card-header bg-light">
+              <h6 class="mb-0">Features</h6>
+            </div>
+            <div class="card-body">
+              <ul class="list-unstyled">
+                <li class="mb-2" *ngFor="let feature of selectedSolution.features">
+                  <i class="feather icon-check text-success m-r-10"></i> {{ feature }}
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="card mb-3">
+            <div class="card-header bg-light">
+              <h6 class="mb-0">Configuration</h6>
+            </div>
+            <div class="card-body">
+              <div class="form-group" *ngFor="let key of objectKeys(selectedSolution.config)">
+                <label>{{ formatKey(key) }}</label>
+                <div *ngIf="isArray(selectedSolution.config[key])">
+                  <div class="badge badge-primary m-r-5 m-b-5" *ngFor="let item of selectedSolution.config[key]">
+                    {{ item }}
+                  </div>
+                </div>
+                <input type="text" class="form-control font-monospace" *ngIf="!isArray(selectedSolution.config[key]) && typeof selectedSolution.config[key] === 'string'" [value]="selectedSolution.config[key]" readonly>
+                <input type="checkbox" class="form-control" *ngIf="typeof selectedSolution.config[key] === 'boolean'" [checked]="selectedSolution.config[key]" disabled>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-3" *ngIf="selectedSolution.metrics && getMetricKeys(selectedSolution).length > 0">
+            <div class="card-header bg-light">
+              <h6 class="mb-0">Metrics</h6>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-6 mb-2" *ngFor="let key of getMetricKeys(selectedSolution)">
+                  <div class="text-center p-2 bg-light rounded">
+                    <div class="font-weight-bold text-primary">{{ formatMetricValue(selectedSolution.metrics[key]) }}</div>
+                    <div class="small text-muted">{{ formatKey(key) }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-3" *ngIf="selectedSolution.id === 'google-adsense'">
+            <div class="card-header bg-light">
+              <h6 class="mb-0">Revenue by Domain</h6>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-sm m-b-0">
+                  <thead>
+                    <tr><th>Domain</th><th>Revenue</th><th>Share</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let domain of revenueByDomain">
+                      <td>{{ domain.domain }}</td>
+                      <td class="font-weight-bold text-success">{{ formatCurrency(domain.revenue) }}</td>
+                      <td>
+                        <div class="d-flex align-items-center">
+                          <ngb-progressbar [value]="domain.percentage" [type]="'success'" height="6px" class="flex-grow-1 m-r-10"></ngb-progressbar>
+                          <span class="small">{{ domain.percentage.toFixed(1) }}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-3" *ngIf="selectedSolution.category === 'ads' && selectedSolution.id !== 'google-adsense'">
+            <div class="card-header bg-light">
+              <h6 class="mb-0">Ad Spend by Platform</h6>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-sm m-b-0">
+                  <thead>
+                    <tr><th>Platform</th><th>Spend</th><th>ROAS</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let platform of adSpendByPlatform">
+                      <td>{{ platform.platform }}</td>
+                      <td class="font-weight-bold text-warning">{{ formatCurrency(platform.spend) }}</td>
+                      <td>{{ platform.roas }}x</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </app-card>
+  </div>
+
+  <!-- Integrations -->
+  <div class="col-xl-12" *ngIf="activeTab === 'integrations'">
+    <app-card cardTitle="Business Integrations" [options]="true">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0">Active Integrations & Webhooks</h6>
+        <span class="badge badge-info">{{ integrations.filter(i => i.status === 'connected').length }} Connected</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover m-b-0">
+          <thead>
+            <tr>
+              <th>Integration</th>
+              <th>Type</th>
+              <th>Provider</th>
+              <th>Status</th>
+              <th>Events</th>
+              <th>Last Event</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let integration of integrations">
+              <td>
+                <strong>{{ integration.name }}</strong>
+              </td>
+              <td>
+                <span class="badge" [ngClass]="getIntegrationTypeClass(integration.type)">{{ integration.type | uppercase }}</span>
+              </td>
+              <td>
+                <i class="fab m-r-5" [ngClass]="getProviderIconClass(integration.provider)"></i>
+                {{ integration.provider | titlecase }}
+              </td>
+              <td>
+                <span class="badge" [ngClass]="getIntegrationStatusClass(integration.status)">{{ integration.status | titlecase }}</span>
+              </td>
+              <td>
+                <span class="badge badge-secondary m-r-5" *ngFor="let event of integration.events">{{ event }}</span>
+              </td>
+              <td>{{ integration.lastEvent ? (integration.lastEvent | date:'short') : 'Never' }}</td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-primary" title="View Details">
+                    <i class="feather icon-eye"></i>
+                  </button>
+                  <button class="btn btn-outline-secondary" title="Test Webhook" *ngIf="integration.type === 'webhook'">
+                    <i class="feather icon-send"></i>
+                  </button>
+                  <button class="btn btn-outline-danger" title="Disconnect" *ngIf="integration.status === 'connected'">
+                    <i class="feather icon-unlink"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </app-card>
+  </div>
+
+  <!-- Social Login Providers Summary -->
+  <div class="col-xl-12">
+    <app-card cardTitle="Social Login Providers (Business Integration Status)" [options]="false">
+      <div class="table-responsive">
+        <table class="table table-hover m-b-0">
+          <thead>
+            <tr>
+              <th>Provider</th>
+              <th>Enabled</th>
+              <th>Business Integration</th>
+              <th>Pages</th>
+              <th>Ad Accounts</th>
+              <th>Pixels</th>
+              <th>Token Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let provider of socialLoginService.getProviders()">
+              <td>
+                <i class="{{ provider.icon }} m-r-5" [style.color]="provider.buttonColor"></i>
+                <strong>{{ provider.name }}</strong>
+              </td>
+              <td>
+                <span class="badge" [ngClass]="provider.enabled ? 'badge-success' : 'badge-secondary'">
+                  {{ provider.enabled ? 'Enabled' : 'Disabled' }}
+                </span>
+              </td>
+              <td>
+                <span *ngIf="provider.businessConfig" class="badge" [ngClass]="provider.businessConfig.enabled ? 'badge-success' : 'badge-secondary'">
+                  {{ provider.businessConfig.enabled ? 'Enabled' : 'Disabled' }}
+                </span>
+                <span *ngIf="!provider.businessConfig" class="badge badge-warning">Not Configured</span>
+              </td>
+              <td>{{ provider.businessConfig?.pages?.length || 0 }}</td>
+              <td>{{ provider.businessConfig?.adAccounts?.length || 0 }}</td>
+              <td>{{ provider.businessConfig?.pixels?.length || 0 }}</td>
+              <td>
+                <span class="badge" *ngIf="provider.businessConfig" [ngClass]="provider.businessConfig.tokenExpiry > (new Date()) ? 'badge-success' : 'badge-danger'">
+                  {{ provider.businessConfig.tokenExpiry > (new Date()) ? 'Valid' : 'Expired' }}
+                </span>
+                <span class="badge badge-secondary" *ngIf="!provider.businessConfig">N/A</span>
+              </td>
+              <td>
+                <button class="btn btn-sm btn-outline-primary" (click)="activeTab = 'solutions'; viewSolutionDetail(businessService.getSolution(getSolutionIdByProvider(provider.id)))">
+                  <i class="feather icon-edit"></i> Configure
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </app-card>
+  </div>
+</div>

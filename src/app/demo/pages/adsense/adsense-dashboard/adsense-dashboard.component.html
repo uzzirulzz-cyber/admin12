@@ -1,0 +1,330 @@
+<div class="row">
+  <!-- Summary Cards -->
+  <div class="col-sm-12">
+    <div class="row no-gutters">
+      <div class="col-md-6 col-xl-3 col-sm-6">
+        <app-card [hidHeader]="true">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <span class="text-muted">Total Revenue</span>
+              <h3 class="mt-1 mb-0">{{ formatCurrency(getTotalRevenue()) }}</h3>
+              <span class="text-success f-12" [ngClass]="{'text-danger': getRevenueGrowth() < 0}">
+                <i class="feather icon-trending-up"></i> {{ getRevenueGrowth() > 0 ? '+' : '' }}{{ getRevenueGrowth().toFixed(1) }}% vs last period
+              </span>
+            </div>
+            <div class="text-right">
+              <div class="avatar avatar-xl bg-light-success">
+                <i class="feather icon-dollar-sign text-success f-24"></i>
+              </div>
+            </div>
+          </div>
+          <app-apex-chart chartID="adsense-revenue-trend" [chartConfig]="chartDB.revenueTrend"></app-apex-chart>
+        </app-card>
+      </div>
+      <div class="col-md-6 col-xl-3 col-sm-6">
+        <app-card [hidHeader]="true">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <span class="text-muted">Total Impressions</span>
+              <h3 class="mt-1 mb-0">{{ formatNumber(getTotalImpressions()) }}</h3>
+              <span class="text-muted f-12">Across all domains</span>
+            </div>
+            <div class="text-right">
+              <div class="avatar avatar-xl bg-light-primary">
+                <i class="feather icon-eye text-primary f-24"></i>
+              </div>
+            </div>
+          </div>
+          <app-apex-chart chartID="adsense-impressions-trend" [chartConfig]="chartDB.impressionsTrend"></app-apex-chart>
+        </app-card>
+      </div>
+      <div class="col-md-6 col-xl-3 col-sm-6">
+        <app-card [hidHeader]="true">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <span class="text-muted">Total Clicks</span>
+              <h3 class="mt-1 mb-0">{{ formatNumber(getTotalClicks()) }}</h3>
+              <span class="text-muted f-12">Total ad clicks</span>
+            </div>
+            <div class="text-right">
+              <div class="avatar avatar-xl bg-light-warning">
+                <i class="feather icon-mouse-pointer text-warning f-24"></i>
+              </div>
+            </div>
+          </div>
+          <app-apex-chart chartID="adsense-clicks-trend" [chartConfig]="chartDB.clicksTrend"></app-apex-chart>
+        </app-card>
+      </div>
+      <div class="col-md-6 col-xl-3 col-sm-6">
+        <app-card [hidHeader]="true">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <span class="text-muted">Avg CTR / CPC</span>
+              <h3 class="mt-1 mb-0">{{ getAverageCTR().toFixed(2) }}% / {{ formatCurrency(getAverageCPC()) }}</h3>
+              <span class="text-muted f-12">CTR: {{ getAverageCTR().toFixed(2) }}% | CPC: {{ formatCurrency(getAverageCPC()) }}</span>
+            </div>
+            <div class="text-right">
+              <div class="avatar avatar-xl bg-light-info">
+                <i class="feather icon-percent text-info f-24"></i>
+              </div>
+            </div>
+          </div>
+          <app-apex-chart chartID="adsense-ctr-cpc-trend" [chartConfig]="chartDB.ctrCpcTrend"></app-apex-chart>
+        </app-card>
+      </div>
+    </div>
+  </div>
+
+  <!-- Domain Performance Table -->
+  <div class="col-xl-12">
+    <app-card cardTitle="Domain Performance" [options]="true">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0">AdSense Performance by Domain</h6>
+        <div class="d-flex align-items-center">
+          <label class="custom-switch m-r-10">
+            <input type="checkbox" [(ngModel)]="autoRefresh" (change)="toggleAutoRefresh()">
+            <span class="custom-switch-indicator"></span>
+            <span class="f-14">Auto Refresh</span>
+          </label>
+          <span class="badge badge-info" *ngIf="isLoading">Updating...</span>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover m-b-0">
+          <thead>
+            <tr>
+              <th>Domain</th>
+              <th>Status</th>
+              <th>Revenue</th>
+              <th>Impressions</th>
+              <th>Clicks</th>
+              <th>CTR</th>
+              <th>CPC</th>
+              <th>RPM</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let domain of domains">
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="avatar avatar-sm bg-light-{{ getDomainStatusClass(domain.status).replace('badge-', '') }} m-r-10">
+                    <i class="feather icon-globe f-14"></i>
+                  </div>
+                  <div>
+                    <span class="d-block font-weight-bold">{{ domain.domain }}</span>
+                    <small class="text-muted">Client: {{ domain.clientId }}</small>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="badge {{ getDomainStatusClass(domain.status) }} badge-pill">
+                  {{ domain.status | titlecase }}
+                </span>
+              </td>
+              <td class="font-weight-bold text-success">{{ formatCurrency(domain.revenue) }}</td>
+              <td>{{ formatNumber(domain.impressions) }}</td>
+              <td>{{ formatNumber(domain.clicks) }}</td>
+              <td>{{ domain.ctr.toFixed(2) }}%</td>
+              <td>{{ formatCurrency(domain.cpc) }}</td>
+              <td>{{ domain.impressions > 0 ? formatCurrency((domain.revenue / domain.impressions) * 1000) : '$0.00' }}</td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-primary" (click)="copyAdCode(domain.domain)" title="Copy Ad Code">
+                    <i class="feather icon-code"></i>
+                  </button>
+                  <button class="btn btn-outline-secondary" title="View Details">
+                    <i class="feather icon-eye"></i>
+                  </button>
+                  <button class="btn btn-outline-danger" *ngIf="domain.status === 'active'" title="Pause Domain">
+                    <i class="feather icon-pause"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </app-card>
+  </div>
+
+  <!-- Revenue Chart & Domain Comparison -->
+  <div class="col-xl-8">
+    <app-card cardTitle="Revenue Trend (Last 30 Days)" [options]="false">
+      <div class="chart-container" style="height: 350px;">
+        <ngx-charts-line-chart
+          [view]="[700, 350]"
+          [results]="dailyRevenueData"
+          [scheme]="'cool'"
+          [xAxis]="true"
+          [yAxis]="true"
+          [legend]="true"
+          [showXAxisLabel]="true"
+          [showYAxisLabel]="true"
+          [xAxisLabel]="'Date'"
+          [yAxisLabel]="'Revenue ($)'"
+          [autoScale]="true"
+          [timeline]="false">
+        </ngx-charts-line-chart>
+      </div>
+    </app-card>
+  </div>
+  <div class="col-xl-4">
+    <app-card cardTitle="Revenue by Domain" [options]="false">
+      <div class="chart-container" style="height: 350px;">
+        <ngx-charts-pie-chart
+          [view]="[350, 350]"
+          [results]="domainComparisonData"
+          [scheme]="'cool'"
+          [legend]="true"
+          [legendPosition]="'below'"
+          [labels]="true"
+          [doughnut]="true"
+          [arcWidth]="0.25">
+        </ngx-charts-pie-chart>
+      </div>
+    </app-card>
+  </div>
+
+  <!-- Device & Geographic Breakdown -->
+  <div class="col-xl-6">
+    <app-card cardTitle="Device Breakdown" [options]="false">
+      <div class="chart-container" style="height: 300px;">
+        <ngx-charts-pie-chart
+          [view]="[500, 300]"
+          [results]="deviceData"
+          [scheme]="'cool'"
+          [legend]="true"
+          [legendPosition]="'right'"
+          [labels]="true"
+          [doughnut]="true">
+        </ngx-charts-pie-chart>
+      </div>
+      <div class="mt-3">
+        <div class="row text-center" *ngFor="let device of deviceData">
+          <div class="col-4">
+            <h5 class="mb-0">{{ formatCurrency(device.revenue) }}</h5>
+            <small class="text-muted">{{ device.name }}</small>
+          </div>
+          <div class="col-4">
+            <h5 class="mb-0">{{ device.value }}%</h5>
+            <small class="text-muted">Traffic Share</small>
+          </div>
+          <div class="col-4">
+            <ngb-progressbar [value]="device.value" [type]="'success'" height="8px"></ngb-progressbar>
+          </div>
+        </div>
+      </div>
+    </app-card>
+  </div>
+  <div class="col-xl-6">
+    <app-card cardTitle="Top Countries by Revenue" [options]="false">
+      <div class="chart-container" style="height: 300px;">
+        <ngx-charts-bar-vertical
+          [view]="[500, 300]"
+          [results]="geoData"
+          [scheme]="'cool'"
+          [xAxis]="true"
+          [yAxis]="true"
+          [showXAxisLabel]="true"
+          [showYAxisLabel]="true"
+          [xAxisLabel]="'Country'"
+          [yAxisLabel]="'Revenue %'"
+          [legend]="false">
+        </ngx-charts-bar-vertical>
+      </div>
+      <div class="mt-3">
+        <div class="table-responsive">
+          <table class="table table-sm m-b-0">
+            <thead>
+              <tr>
+                <th>Country</th>
+                <th>Revenue Share</th>
+                <th>Est. Revenue</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let geo of geoData">
+                <td>{{ geo.name }}</td>
+                <td>{{ geo.value }}%</td>
+                <td class="text-success">{{ formatCurrency(geo.revenue) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </app-card>
+  </div>
+
+  <!-- Ad Code Generator -->
+  <div class="col-xl-12">
+    <app-card cardTitle="Ad Code Generator" [options]="false">
+      <div class="row">
+        <div class="col-md-6">
+          <h6>Domain Ad Units</h6>
+          <div class="form-group">
+            <label>Select Domain</label>
+            <select class="form-control" [(ngModel)]="selectedDomain" (change)="onDomainSelect()">
+              <option value="">Choose a domain...</option>
+              <option *ngFor="let domain of activeDomains" [value]="domain.domain">{{ domain.domain }}</option>
+            </select>
+          </div>
+          <div class="form-group" *ngIf="selectedDomain">
+            <label>Ad Code for {{ selectedDomain }}</label>
+            <textarea class="form-control font-monospace" rows="8" readonly>{{ adsenseService.getAdSenseCode(selectedDomain) }}</textarea>
+            <button class="btn btn-sm btn-primary mt-2" (click)="copyAdCode(selectedDomain)">
+              <i class="feather icon-copy"></i> Copy to Clipboard
+            </button>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <h6>Auto Ads (Global)</h6>
+          <div class="form-group">
+            <label>Auto Ads Code</label>
+            <textarea class="form-control font-monospace" rows="8" readonly>{{ adsenseService.getAutoAdsCode() }}</textarea>
+            <button class="btn btn-sm btn-primary mt-2" (click)="copyAutoAdsCode()">
+              <i class="feather icon-copy"></i> Copy to Clipboard
+            </button>
+          </div>
+          <div class="mt-4">
+            <h6>Global Settings</h6>
+            <div class="row">
+              <div class="col-6">
+                <label class="custom-control custom-checkbox">
+                  <input type="checkbox" class="custom-control-input" [(ngModel)]="globalSettings.autoAds" (change)="adsenseService.updateGlobalSettings({autoAds: globalSettings.autoAds})">
+                  <span class="custom-control-label">Auto Ads</span>
+                </label>
+              </div>
+              <div class="col-6">
+                <label class="custom-control custom-checkbox">
+                  <input type="checkbox" class="custom-control-input" [(ngModel)]="globalSettings.pageLevelAds" (change)="adsenseService.updateGlobalSettings({pageLevelAds: globalSettings.pageLevelAds})">
+                  <span class="custom-control-label">Page Level Ads</span>
+                </label>
+              </div>
+              <div class="col-6">
+                <label class="custom-control custom-checkbox">
+                  <input type="checkbox" class="custom-control-input" [(ngModel)]="globalSettings.matchedContent" (change)="adsenseService.updateGlobalSettings({matchedContent: globalSettings.matchedContent})">
+                  <span class="custom-control-label">Matched Content</span>
+                </label>
+              </div>
+              <div class="col-6">
+                <label class="custom-control custom-checkbox">
+                  <input type="checkbox" class="custom-control-input" [(ngModel)]="globalSettings.anchorAds" (change)="adsenseService.updateGlobalSettings({anchorAds: globalSettings.anchorAds})">
+                  <span class="custom-control-label">Anchor Ads</span>
+                </label>
+              </div>
+              <div class="col-6">
+                <label class="custom-control custom-checkbox">
+                  <input type="checkbox" class="custom-control-input" [(ngModel)]="globalSettings.vignetteAds" (change)="adsenseService.updateGlobalSettings({vignetteAds: globalSettings.vignetteAds})">
+                  <span class="custom-control-label">Vignette Ads</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </app-card>
+  </div>
+</div>
+
+<!-- Add domain modal would go here -->
