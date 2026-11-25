@@ -50,6 +50,10 @@ const routes: Routes = [
         loadChildren: () => import('./demo/pages/social-login/social-login.module').then(module => module.SocialLoginModule)
       },
       {
+        path: 'sms',
+        loadChildren: () => import('./demo/pages/sms/sms.module').then(module => module.SmsModule)
+      },
+      {
         path: 'business-management',
         loadChildren: () => import('./demo/pages/business-management/business-management.module').then(module => module.BusinessManagementModule)
       }
