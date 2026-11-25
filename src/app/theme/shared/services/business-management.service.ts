@@ -375,11 +375,11 @@ export class BusinessManagementService {
       category: 'crm',
       icon: 'fas fa-handshake',
       enabled: true,
-      configured: false,
+      configured: true,
       provider: 'hubspot',
       config: {
-        portalId: '',
-        apiKey: '',
+        portalId: '1234567',
+        apiKey: 'placeholder-hubspot-key',
         webhookUrl: 'https://playbeat.digital/api/webhooks/hubspot'
       },
       features: [
@@ -396,8 +396,13 @@ export class BusinessManagementService {
         currency: 'USD',
         billingCycle: 'monthly'
       },
-      status: 'inactive',
-      metrics: {}
+      status: 'active',
+      metrics: {
+        totalContacts: 12543,
+        totalCompanies: 342,
+        dealsCreated: 487,
+        pipelineValue: 285000.00
+      }
     },
     {
       id: 'mailchimp',
